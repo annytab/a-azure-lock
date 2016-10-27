@@ -158,6 +158,9 @@ publish/
 *.nuget.props
 *.nuget.targets
 
+# Create NuGetPackage
+Annytab.AzureLock/_CreateNewNuGetPackage/
+
 # Microsoft Azure Build Output
 csx/
 *.build.csdef
