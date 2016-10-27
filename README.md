@@ -1,6 +1,5 @@
 # a-azure-lock
-A blob lock written in ASP.NET and C# to use with a Windows Azure Storage. A blob lock needs a connection string to the storage account, 
-a container name and a name for the blob file.
+A blob lock written in ASP.NET and C# to use in multi instance applications on Azure. A blob lock needs a connection string to the storage account, a container name and a name for the blob file.
 
 Example, Create a lock or wait for the lock to be released:
 <pre>
