@@ -50,7 +50,11 @@ namespace Annytab.AzureLock
             // Upload a blob if it does not exist
             if (blob.Exists() == false)
             {
-                blob.UploadFromStream(new MemoryStream());
+                // Create and use a memory stream
+                using (MemoryStream stream = new MemoryStream())
+                {
+                    blob.UploadFromStream(stream);
+                }
             }
 
         } // End of the constructor
@@ -148,6 +152,49 @@ namespace Annytab.AzureLock
             renewalThread.Start();
 
         } // End of the RenewLease method
+
+        #endregion
+
+        #region Read and write methods
+
+        /// <summary>
+        /// Read text from the blob
+        /// </summary>
+        /// <returns>A string with the contents in the blob</returns>
+        public string ReadFrom()
+        {
+            // Create the string to return
+            string text = "";
+
+            // Create and use a memory stream
+            using (MemoryStream stream = new MemoryStream())
+            {
+                // Download the blob to a stream
+                this.blob.DownloadToStream(stream, new AccessCondition { LeaseId = this.leaseId });
+
+                // Get the text from the stream
+                text = System.Text.Encoding.UTF8.GetString(stream.ToArray());
+            }
+
+            // Return the string
+            return text;
+
+        } // End of the ReadFrom method
+
+        /// <summary>
+        /// Write text to the blob
+        /// </summary>
+        /// <param name="text">Text to be written to the blob</param>
+        public void WriteTo(string text)
+        {
+            // Create and use a memory stream
+            using (MemoryStream stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(text), false))
+            {
+                // Write to the blob
+                this.blob.UploadFromStream(stream, new AccessCondition { LeaseId = this.leaseId });
+            }
+
+        } // End of the WriteTo method
 
         #endregion
 
