@@ -246,3 +246,6 @@ ModelManifest.xml
 
 # FAKE - F# Make
 .fake/
+
+# Ignore development settings
+appsettings.Development.json

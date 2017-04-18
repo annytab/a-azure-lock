@@ -3,6 +3,8 @@ using System.Threading;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using System.IO;
+using System.Threading.Tasks;
+using Microsoft.WindowsAzure.Storage.RetryPolicies;
 
 namespace Annytab.AzureLock
 {
@@ -13,12 +15,16 @@ namespace Annytab.AzureLock
     {
         #region Variables
 
-        private CloudBlockBlob blob;
-        private string leaseId;
-        private Thread renewalThread;
+        // Blob variables
+        private BlobLockOptions options { get; set; }
+        private CloudBlobContainer container { get; set; }
+        private CloudBlockBlob blob { get; set; }
+        private string leaseId { get; set; }
+        private Thread renewalThread { get; set; }
 
-        // Used for the disposable interface
-        private bool disposed = false;
+        // Disposing
+        private bool disposed { get; set; }
+        private bool renewLock { get; set; }
 
         #endregion
 
@@ -27,37 +33,53 @@ namespace Annytab.AzureLock
         /// <summary>
         /// Create a new blob lock
         /// </summary>
-        /// <param name="connectionString">A connection string to a azure storage account</param>
-        /// <param name="containerName">A name for the container</param>
-        /// <param name="blobName">A name for the blob</param>
-        public BlobLock(string connectionString, string containerName, string blobName)
+        /// <param name="options">A reference to bloblock options</param>
+        public BlobLock(BlobLockOptions options)
         {
+            // Set values for instance variables
+            this.options = options;
+            this.disposed = false;
+            this.renewLock = true;
+
             // Get a storage account
-            CloudStorageAccount account = CloudStorageAccount.Parse(connectionString);
+            CloudStorageAccount account = CloudStorageAccount.Parse(this.options.connection_string);
 
             // Get a client
             CloudBlobClient client = account.CreateCloudBlobClient();
 
             // Get a reference to a cloud blob contaner
-            CloudBlobContainer container = client.GetContainerReference(containerName);
+            this.container = client.GetContainerReference(this.options.container_name);
 
+            // Create a task to run async initialization
+            Task task = Task.Run(() => InitializeAsync());
+
+            // Wait for the task to complete
+            task.Wait();
+
+        } // End of the constructor
+
+        /// <summary>
+        /// Helper method to create a blob lock, is used to call async methods
+        /// </summary>
+        private async Task InitializeAsync()
+        {
             // Create a container if it does not exist
-            container.CreateIfNotExists();
+            await this.container.CreateIfNotExistsAsync();
 
             // Get a blob object
-            blob = container.GetBlockBlobReference(blobName);
+            this.blob = this.container.GetBlockBlobReference(this.options.blob_name);
 
             // Upload a blob if it does not exist
-            if (blob.Exists() == false)
+            if (await this.blob.ExistsAsync() == false)
             {
                 // Create and use a memory stream
                 using (MemoryStream stream = new MemoryStream())
                 {
-                    blob.UploadFromStream(stream);
+                    await this.blob.UploadFromStreamAsync(stream);
                 }
             }
 
-        } // End of the constructor
+        } // End of the InitializeAsync method
 
         #endregion
 
@@ -70,7 +92,7 @@ namespace Annytab.AzureLock
         public bool CreateOrWait()
         {
             // Try to aquire a blob lock
-            while (TryAcquireLease(this.blob) == false)
+            while (TryAcquireLease() == false)
             {
                 // Sleep times should be random
                 Random rnd = new Random();
@@ -94,7 +116,7 @@ namespace Annytab.AzureLock
         public bool CreateOrSkip()
         {
             // Try to aquire a blob lock
-            bool success = TryAcquireLease(this.blob);
+            bool success = TryAcquireLease();
 
             // Renew the lease if the lock is taken
             if (success == true)
@@ -115,41 +137,50 @@ namespace Annytab.AzureLock
         /// <summary>
         /// Try to get a lock
         /// </summary>
-        /// <param name="blob">A reference to a blob</param>
         /// <returns>A boolean that indicates if the lease was acquired</returns>
-        private bool TryAcquireLease(CloudBlockBlob blob)
+        private bool TryAcquireLease()
         {
+            // Create a task to acquire a lease on the blob
+            Task<string> task = Task.Run<string>(() => this.blob.AcquireLeaseAsync(TimeSpan.FromSeconds(60), null));
+
             try
             {
-                // Acquire a lease on the blob
-                this.leaseId = blob.AcquireLease(TimeSpan.FromSeconds(60), null);
+                // Wait for the task to complete
+                task.Wait();
+                
+                // Get the lease id
+                this.leaseId = task.Result;
 
                 // Return true
                 return true;
             }
-            catch (Exception ex)
+            catch (AggregateException)
             {
                 // There is a lock on the blob, return false
-                string exMessage = ex.Message;
+                return false;
+            }
+            catch (Exception)
+            {
+                // There is a lock on the blob, return false
                 return false;
             }
 
         } // End of the TryAcquireLease method
 
         /// <summary>
-        /// Renew the lease every 40 seconds
+        /// Renew the lease every 30 seconds
         /// </summary>
         private void RenewLease()
         {
-            renewalThread = new Thread(() =>
+            this.renewalThread = new Thread(() =>
             {
-                while (true)
+                while (this.renewLock == true)
                 {
-                    Thread.Sleep(TimeSpan.FromSeconds(40));
-                    blob.RenewLease(new AccessCondition { LeaseId = this.leaseId });
+                    Thread.Sleep(TimeSpan.FromSeconds(30));
+                    this.blob.RenewLeaseAsync(new AccessCondition { LeaseId = this.leaseId });
                 }
             });
-            renewalThread.Start();
+            this.renewalThread.Start();
 
         } // End of the RenewLease method
 
@@ -170,7 +201,11 @@ namespace Annytab.AzureLock
             using (MemoryStream stream = new MemoryStream())
             {
                 // Download the blob to a stream
-                this.blob.DownloadToStream(stream, new AccessCondition { LeaseId = this.leaseId });
+                Task task = Task.Run(() => this.blob.DownloadToStreamAsync(stream, new AccessCondition { LeaseId = this.leaseId },
+                    new BlobRequestOptions { RetryPolicy = new LinearRetry(TimeSpan.FromSeconds(10), 3) }, null));
+
+                // Wait for the task to complete
+                task.Wait();
 
                 // Get the text from the stream
                 text = System.Text.Encoding.UTF8.GetString(stream.ToArray());
@@ -191,8 +226,41 @@ namespace Annytab.AzureLock
             using (MemoryStream stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(text), false))
             {
                 // Write to the blob
-                this.blob.UploadFromStream(stream, new AccessCondition { LeaseId = this.leaseId });
+                Task task = Task.Run(() => this.blob.UploadFromStreamAsync(stream, new AccessCondition { LeaseId = this.leaseId },
+                    new BlobRequestOptions { RetryPolicy = new LinearRetry(TimeSpan.FromSeconds(10), 3) }, null));
+
+                // Wait for the task to complete
+                task.Wait();
             }
+
+        } // End of the WriteTo method
+
+        /// <summary>
+        /// Read content from the blob
+        /// </summary>
+        /// <param name="stream">A reference to a stream</param>
+        public void ReadFrom(Stream stream)
+        {
+            // Download the blob to a stream
+            Task task = Task.Run(() => this.blob.DownloadToStreamAsync(stream, new AccessCondition { LeaseId = this.leaseId },
+                new BlobRequestOptions { RetryPolicy = new LinearRetry(TimeSpan.FromSeconds(10), 3) }, null));
+
+            // Wait for the task to complete
+            task.Wait();
+
+        } // End of the ReadFrom method
+
+        /// <summary>
+        /// Write content to the blob
+        /// </summary>
+        public void WriteTo(Stream stream)
+        {
+            // Write to the blob
+            Task task = Task.Run(() => this.blob.UploadFromStreamAsync(stream, new AccessCondition { LeaseId = this.leaseId },
+                new BlobRequestOptions { RetryPolicy = new LinearRetry(TimeSpan.FromSeconds(10), 3) }, null));
+
+            // Wait for the task to complete
+            task.Wait();
 
         } // End of the WriteTo method
 
@@ -216,21 +284,22 @@ namespace Annytab.AzureLock
         /// <param name="disposing">True or false</param>
         protected virtual void Dispose(bool disposing)
         {
-            if (disposed)
+            if (this.disposed)
                 return;
 
             if (disposing)
             {
-                if (renewalThread != null)
+                if (this.renewalThread != null)
                 {
-                    renewalThread.Abort();
-                    blob.ReleaseLease(new AccessCondition { LeaseId = this.leaseId });
-                    renewalThread = null;
+                    this.renewLock = false;
+                    this.renewalThread.Join();
+                    this.blob.ReleaseLeaseAsync(new AccessCondition { LeaseId = this.leaseId });
+                    //this.renewalThread = null;
                 }
             }
 
             // Indicate that the object is disposed
-            disposed = true;
+            this.disposed = true;
 
         } // End of the Dispose method
 
