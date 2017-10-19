@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.VisualStudio.TestTools.UnitTesting.Logging;
@@ -43,10 +42,10 @@ namespace TestProgram
         {
             Task[] tasks = new[]
             {
-                Task.Factory.StartNew(() => CreateOrWaitForLock(1)),
-                Task.Factory.StartNew(() => CreateOrWaitForLock(2)),
-                Task.Factory.StartNew(() => CreateOrWaitForLock(3)),
-                Task.Factory.StartNew(() => CreateOrWaitForLock(4))
+                Task.Run(() => CreateOrWaitForLock(1)),
+                Task.Run(() => CreateOrWaitForLock(2)),
+                Task.Run(() => CreateOrWaitForLock(3)),
+                Task.Run(() => CreateOrWaitForLock(4))
             };
             Task.WaitAll(tasks);
 
@@ -57,10 +56,10 @@ namespace TestProgram
         {
             Task[] tasks = new[]
             {
-                Task.Factory.StartNew(() => CreateOrSkipLock(1)),
-                Task.Factory.StartNew(() => CreateOrSkipLock(2)),
-                Task.Factory.StartNew(() => CreateOrSkipLock(3)),
-                Task.Factory.StartNew(() => CreateOrSkipLock(4))
+                Task.Run(() => CreateOrSkipLock(1)),
+                Task.Run(() => CreateOrSkipLock(2)),
+                Task.Run(() => CreateOrSkipLock(3)),
+                Task.Run(() => CreateOrSkipLock(4))
             };
             Task.WaitAll(tasks);
 
@@ -71,10 +70,10 @@ namespace TestProgram
         {
             Task[] tasks = new[]
             {
-                Task.Factory.StartNew(() => UploadImage(1)),
-                Task.Factory.StartNew(() => UploadImage(2)),
-                Task.Factory.StartNew(() => UploadImage(3)),
-                Task.Factory.StartNew(() => UploadImage(4))
+                Task.Run(() => UploadImage(1)),
+                Task.Run(() => UploadImage(2)),
+                Task.Run(() => UploadImage(3)),
+                Task.Run(() => UploadImage(4))
             };
             Task.WaitAll(tasks);
 
@@ -85,10 +84,10 @@ namespace TestProgram
         {
             Task[] tasks = new[]
             {
-                Task.Factory.StartNew(() => DownloadImage(1)),
-                Task.Factory.StartNew(() => DownloadImage(2)),
-                Task.Factory.StartNew(() => DownloadImage(3)),
-                Task.Factory.StartNew(() => DownloadImage(4))
+                Task.Run(() => DownloadImage(1)),
+                Task.Run(() => DownloadImage(2)),
+                Task.Run(() => DownloadImage(3)),
+                Task.Run(() => DownloadImage(4))
             };
             Task.WaitAll(tasks);
 
@@ -98,27 +97,27 @@ namespace TestProgram
         /// Create or wait for a lock
         /// </summary>
         /// <param name="threadId">A thread id</param>
-        private void CreateOrWaitForLock(Int32 threadId)
+        private async Task CreateOrWaitForLock(Int32 threadId)
         {
             // Add options
             BlobLockOptions options = new BlobLockOptions();
             options.connection_string = this.configuration.GetSection("AppSettings")["AzureStorageAccount"];
-            options.container_name = "locks";
+            options.container_name = "test-locks";
             options.blob_name = "test.lck";
 
             // Use a blob lock, the lock is disposed by the using block
             using (BlobLock blobLock = new BlobLock(options))
             {
                 // Do work inside a blob lock
-                if (blobLock.CreateOrWait() == true)
+                if (await blobLock.CreateOrWait() == true)
                 {
                     Logger.LogMessage("Thread " + threadId.ToString() + ": Has lock for 1 minute. Date: " + DateTime.UtcNow.ToString("s"));
 
                     // Read from the blob
-                    Logger.LogMessage("Text: " + blobLock.ReadFrom());
+                    Logger.LogMessage("Text: " + await blobLock.ReadFrom());
 
                     // Sleep for 1 minute
-                    Thread.Sleep(TimeSpan.FromMinutes(1));
+                    await Task.Delay(TimeSpan.FromSeconds(60));
                 }
             }
 
@@ -128,28 +127,27 @@ namespace TestProgram
         /// Create a lock or skip if the lock is taken
         /// </summary>
         /// <param name="threadId">A thread id</param>
-        private void CreateOrSkipLock(Int32 threadId)
+        private async Task CreateOrSkipLock(Int32 threadId)
         {
             // Add options
             BlobLockOptions options = new BlobLockOptions();
             options.connection_string = this.configuration.GetSection("AppSettings")["AzureStorageAccount"];
-            options.container_name = "locks";
+            options.container_name = "test-locks";
             options.blob_name = "test.lck";
 
             // Use a blob lock, the lock is disposed by the using block
             using (BlobLock blobLock = new BlobLock(options))
             {
                 // Do work inside a blob lock
-                if (blobLock.CreateOrSkip() == true)
+                if (await blobLock.CreateOrSkip() == true)
                 {
                     Logger.LogMessage("Thread " + threadId.ToString() + ": Has lock for 1 minute.");
 
                     // Sleep for 1 minute
-                    Thread.Sleep(TimeSpan.FromMinutes(1));
+                    await Task.Delay(TimeSpan.FromSeconds(60));
 
                     // Write to the blob
-                    blobLock.WriteTo("65");
-
+                    await blobLock.WriteTo(threadId.ToString());
                 }
                 else
                 {
@@ -163,13 +161,13 @@ namespace TestProgram
         /// Upload an image to the blob
         /// </summary>
         /// <param name="threadId">A thread id</param>
-        private void UploadImage(Int32 threadId)
+        private async Task UploadImage(Int32 threadId)
         {
             // Add options
             BlobLockOptions options = new BlobLockOptions()
             {
                 connection_string = this.configuration.GetSection("AppSettings")["AzureStorageAccount"],
-                container_name = "locks",
+                container_name = "test-locks",
                 blob_name = "image.jpg"
             };
 
@@ -177,14 +175,14 @@ namespace TestProgram
             using (BlobLock blobLock = new BlobLock(options))
             {
                 // Do work inside a blob lock
-                if (blobLock.CreateOrSkip() == true)
+                if (await blobLock.CreateOrSkip() == true)
                 {
                     Logger.LogMessage("Thread " + threadId.ToString() + ": Has lock for 1 minute.");
 
                     // Upload the image
-                    using (FileStream fileStream = File.OpenRead(@"D:\Bilder\1960.jpg"))
+                    using (FileStream fileStream = File.OpenRead("D:\\Bilder\\1960.jpg"))
                     {
-                        blobLock.WriteTo(fileStream);
+                        await blobLock.WriteTo(fileStream);
                     }
 
                     Logger.LogMessage("Thread " + threadId.ToString() + ": Image has been uploaded.");
@@ -201,13 +199,13 @@ namespace TestProgram
         /// Download an image from the blob
         /// </summary>
         /// <param name="threadId">A thread id</param>
-        private void DownloadImage(Int32 threadId)
+        private async Task DownloadImage(Int32 threadId)
         {
             // Add options
             BlobLockOptions options = new BlobLockOptions()
             {
                 connection_string = this.configuration.GetSection("AppSettings")["AzureStorageAccount"],
-                container_name = "locks",
+                container_name = "test-locks",
                 blob_name = "image.jpg"
             };
 
@@ -215,14 +213,14 @@ namespace TestProgram
             using (BlobLock blobLock = new BlobLock(options))
             {
                 // Do work inside a blob lock
-                if (blobLock.CreateOrSkip() == true)
+                if (await blobLock.CreateOrSkip() == true)
                 {
                     Logger.LogMessage("Thread " + threadId.ToString() + ": Has lock for 1 minute.");
 
                     // Download an image to a file
-                    using (FileStream fileStream = File.OpenWrite(@"D:\Bilder\Azure-blob-image.jpg"))
+                    using (FileStream fileStream = File.OpenWrite("D:\\Bilder\\Azure-blob-image.jpg"))
                     {
-                        blobLock.ReadFrom(fileStream);
+                        await blobLock.ReadFrom(fileStream);
                     }
 
                     Logger.LogMessage("Thread " + threadId.ToString() + ": Image has been downloaded.");

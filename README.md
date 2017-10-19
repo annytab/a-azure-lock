@@ -12,23 +12,23 @@ Example, Create a lock or wait for the lock to be released:
 // Add options
 BlobLockOptions options = new BlobLockOptions();
 options.connection_string = this.configuration.GetSection("AppSettings")["AzureStorageAccount"];
-options.container_name = "locks";
+options.container_name = "test-locks";
 options.blob_name = "test.lck";
 
 // Use a blob lock, the lock is disposed by the using block
 using (BlobLock blobLock = new BlobLock(options))
 {
-    // Do work inside a blob lock
-    if (blobLock.CreateOrWait() == true)
-    {
-        Logger.LogMessage("Thread " + threadId.ToString() + ": Has lock for 1 minute. Date: " + DateTime.UtcNow.ToString("s"));
+	// Do work inside a blob lock
+	if (await blobLock.CreateOrWait() == true)
+	{
+		Logger.LogMessage("Thread " + threadId.ToString() + ": Has lock for 1 minute. Date: " + DateTime.UtcNow.ToString("s"));
 
-        // Read from the blob
-        Logger.LogMessage("Text: " + blobLock.ReadFrom());
+		// Read from the blob
+		Logger.LogMessage("Text: " + await blobLock.ReadFrom());
 
-        // Sleep for 1 minute
-        Thread.Sleep(TimeSpan.FromMinutes(3));
-    }
+		// Sleep for 1 minute
+		await Task.Delay(TimeSpan.FromSeconds(60));
+	}
 }
 </pre>
 
@@ -37,28 +37,27 @@ Example, Create a lock or skip if the lock is taken:
 // Add options
 BlobLockOptions options = new BlobLockOptions();
 options.connection_string = this.configuration.GetSection("AppSettings")["AzureStorageAccount"];
-options.container_name = "locks";
+options.container_name = "test-locks";
 options.blob_name = "test.lck";
 
 // Use a blob lock, the lock is disposed by the using block
 using (BlobLock blobLock = new BlobLock(options))
 {
-    // Do work inside a blob lock
-    if (blobLock.CreateOrSkip() == true)
-    {
-        Logger.LogMessage("Thread " + threadId.ToString() + ": Has lock for 1 minute.");
+	// Do work inside a blob lock
+	if (await blobLock.CreateOrSkip() == true)
+	{
+		Logger.LogMessage("Thread " + threadId.ToString() + ": Has lock for 1 minute.");
 
-        // Sleep for 1 minute
-        Thread.Sleep(TimeSpan.FromMinutes(1));
+		// Sleep for 1 minute
+		await Task.Delay(TimeSpan.FromSeconds(60));
 
-        // Write to the blob
-        blobLock.WriteTo("65");
-
-    }
-    else
-    {
-        Logger.LogMessage("Thread " + threadId.ToString() + ": Does not wait for the lock to be released.");
-    }
+		// Write to the blob
+		await blobLock.WriteTo(threadId.ToString());
+	}
+	else
+	{
+		Logger.LogMessage("Thread " + threadId.ToString() + ": Does not wait for the lock to be released.");
+	}
 }
 </pre>
 
@@ -67,31 +66,31 @@ Example, Upload a stream (image):
 // Add options
 BlobLockOptions options = new BlobLockOptions()
 {
-    connection_string = this.configuration.GetSection("AppSettings")["AzureStorageAccount"],
-    container_name = "locks",
-    blob_name = "image.jpg"
+	connection_string = this.configuration.GetSection("AppSettings")["AzureStorageAccount"],
+	container_name = "test-locks",
+	blob_name = "image.jpg"
 };
 
 // Use a blob lock, the lock is disposed by the using block
 using (BlobLock blobLock = new BlobLock(options))
 {
-    // Do work inside a blob lock
-    if (blobLock.CreateOrSkip() == true)
-    {
-        Logger.LogMessage("Thread " + threadId.ToString() + ": Has lock for 1 minute.");
+	// Do work inside a blob lock
+	if (await blobLock.CreateOrSkip() == true)
+	{
+		Logger.LogMessage("Thread " + threadId.ToString() + ": Has lock for 1 minute.");
 
-        // Upload the image
-        using (FileStream fileStream = File.OpenRead(@"D:\Bilder\1960.jpg"))
-        {
-            blobLock.WriteTo(fileStream);
-        }
+		// Upload the image
+		using (FileStream fileStream = File.OpenRead("D:\\Bilder\\1960.jpg"))
+		{
+			await blobLock.WriteTo(fileStream);
+		}
 
-        Logger.LogMessage("Thread " + threadId.ToString() + ": Image has been uploaded.");
-    }
-    else
-    {
-        Logger.LogMessage("Thread " + threadId.ToString() + ": Does not wait for the lock to be released.");
-    }
+		Logger.LogMessage("Thread " + threadId.ToString() + ": Image has been uploaded.");
+	}
+	else
+	{
+		Logger.LogMessage("Thread " + threadId.ToString() + ": Does not wait for the lock to be released.");
+	}
 }
 </pre>
 
@@ -100,30 +99,30 @@ Example, Download a stream (image):
 // Add options
 BlobLockOptions options = new BlobLockOptions()
 {
-    connection_string = this.configuration.GetSection("AppSettings")["AzureStorageAccount"],
-    container_name = "locks",
-    blob_name = "image.jpg"
+	connection_string = this.configuration.GetSection("AppSettings")["AzureStorageAccount"],
+	container_name = "test-locks",
+	blob_name = "image.jpg"
 };
 
 // Use a blob lock, the lock is disposed by the using block
 using (BlobLock blobLock = new BlobLock(options))
 {
-    // Do work inside a blob lock
-    if (blobLock.CreateOrSkip() == true)
-    {
-        Logger.LogMessage("Thread " + threadId.ToString() + ": Has lock for 1 minute.");
+	// Do work inside a blob lock
+	if (await blobLock.CreateOrSkip() == true)
+	{
+		Logger.LogMessage("Thread " + threadId.ToString() + ": Has lock for 1 minute.");
 
-        // Download an image to a file
-        using (FileStream fileStream = File.OpenWrite(@"D:\Bilder\Azure-blob-image.jpg"))
-        {
-            blobLock.ReadFrom(fileStream);
-        }
+		// Download an image to a file
+		using (FileStream fileStream = File.OpenWrite("D:\\Bilder\\Azure-blob-image.jpg"))
+		{
+			await blobLock.ReadFrom(fileStream);
+		}
 
-        Logger.LogMessage("Thread " + threadId.ToString() + ": Image has been downloaded.");
-    }
-    else
-    {
-        Logger.LogMessage("Thread " + threadId.ToString() + ": Does not wait for the lock to be released.");
-    }
+		Logger.LogMessage("Thread " + threadId.ToString() + ": Image has been downloaded.");
+	}
+	else
+	{
+		Logger.LogMessage("Thread " + threadId.ToString() + ": Does not wait for the lock to be released.");
+	}
 }
 </pre>

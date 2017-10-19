@@ -1,11 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26228.12
+VisualStudioVersion = 15.0.27004.2002
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Annytab.AzureLock", "Annytab.AzureLock\Annytab.AzureLock.csproj", "{F4F87C40-5A0A-44C8-9438-2A79E34C1197}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Annytab.AzureLock", "Annytab.AzureLock\Annytab.AzureLock.csproj", "{F4F87C40-5A0A-44C8-9438-2A79E34C1197}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestProgram", "TestProgram\TestProgram.csproj", "{8EBED53D-E53B-4952-A342-0D372391A731}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestProgram", "TestProgram\TestProgram.csproj", "{8EBED53D-E53B-4952-A342-0D372391A731}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,5 +24,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2FF11703-83FF-4B9C-A76E-6952AF3546EC}
 	EndGlobalSection
 EndGlobal
