@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Version>1.2.2</Version>
+    <Version>1.2.3</Version>
     <Authors>A Name Not Yet Taken AB</Authors>
     <Company>A Name Not Yet Taken AB</Company>
     <Product>a-azure-lock</Product>
@@ -14,11 +14,12 @@
     <RepositoryUrl></RepositoryUrl>
     <NeutralLanguage>en</NeutralLanguage>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <PackageReleaseNotes>This version adds support to .Net Core 2.0 by targeting the .Net Standard 2.0. All methods are now async, this means that you have to await these methods and make your own method async.</PackageReleaseNotes>
+    <PackageReleaseNotes>This version makes the process of taking an releasing locks faster. Waits for locks to be released for a maximum of 1 second and renews the lease every 1 second.</PackageReleaseNotes>
+    <PackageLicenseUrl>https://github.com/annytab/a-azure-lock/blob/master/LICENSE</PackageLicenseUrl>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="WindowsAzure.Storage" Version="8.5.0" />
+    <PackageReference Include="WindowsAzure.Storage" Version="9.3.1" />
   </ItemGroup>
 
 </Project>

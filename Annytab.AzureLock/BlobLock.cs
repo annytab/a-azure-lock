@@ -3,7 +3,6 @@ using System.IO;
 using System.Threading.Tasks;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
-using Microsoft.WindowsAzure.Storage.RetryPolicies;
 
 namespace Annytab.AzureLock
 {
@@ -50,14 +49,13 @@ namespace Annytab.AzureLock
         /// <summary>
         /// Create a lock, wait if the lock not could be aquired
         /// </summary>
-        /// <returns>A boolean that indicates if the lock is taken</returns>
         public async Task<bool> CreateOrWait()
         {
             // Try to aquire a blob lock
             while (await TryAcquireLease() == false)
             {
-                // Sleep between 30 and 60 seconds
-                await Task.Delay(this.rnd.Next(30000, 60000));
+                // Sleep between 200 and 1000 millisecondes
+                await Task.Delay(this.rnd.Next(200, 1000));
             }
 
             // Renew the lease until the work is done
@@ -71,7 +69,6 @@ namespace Annytab.AzureLock
         /// <summary>
         /// Create a lock, do not wait on the lock to be released
         /// </summary>
-        /// <returns>A boolean that indicates if the lock is taken</returns>
         public async Task<bool> CreateOrSkip()
         {
             // Try to aquire a blob lock
@@ -96,7 +93,6 @@ namespace Annytab.AzureLock
         /// <summary>
         /// Try to get a lock
         /// </summary>
-        /// <returns>A boolean that indicates if the lease was acquired</returns>
         private async Task<bool> TryAcquireLease()
         {
             // Set a blob reference if it doesnt exist
@@ -119,7 +115,7 @@ namespace Annytab.AzureLock
         } // End of the TryAcquireLease method
 
         /// <summary>
-        /// Renew the lease every 30 seconds
+        /// Renew the lease every 1000 milliseconds
         /// </summary>
         private async Task RenewLease()
         {
@@ -132,7 +128,8 @@ namespace Annytab.AzureLock
                 // Loop while true
                 while (this.renewLock == true)
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(30));
+                    // Sleep for 1000 milliseconds
+                    await Task.Delay(1000);
                     await this.blob.RenewLeaseAsync(new AccessCondition { LeaseId = this.leaseId });
                 }
 
@@ -161,9 +158,9 @@ namespace Annytab.AzureLock
             // Create and use a memory stream
             using (MemoryStream stream = new MemoryStream())
             {
-                // Download the blob to a stream
-                await this.blob.DownloadToStreamAsync(stream, new AccessCondition { LeaseId = this.leaseId }, 
-                    new BlobRequestOptions { RetryPolicy = new LinearRetry(TimeSpan.FromSeconds(10), 3) }, null);
+                // Download the blob to a stream { RetryPolicy = new LinearRetry(TimeSpan.FromSeconds(10), 3) }
+                await this.blob.DownloadToStreamAsync(stream, new AccessCondition { LeaseId = this.leaseId },
+                    new BlobRequestOptions(), null);
 
                 // Get the text from the stream
                 text = System.Text.Encoding.UTF8.GetString(stream.ToArray());
@@ -186,9 +183,9 @@ namespace Annytab.AzureLock
             // Create and use a memory stream
             using (MemoryStream stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(text), false))
             {
-                // Write to the blob
+                // Write to the blob  { RetryPolicy = new LinearRetry(TimeSpan.FromSeconds(10), 3) }
                 await this.blob.UploadFromStreamAsync(stream, new AccessCondition { LeaseId = this.leaseId },
-                    new BlobRequestOptions { RetryPolicy = new LinearRetry(TimeSpan.FromSeconds(10), 3) }, null);
+                    new BlobRequestOptions(), null);
             }
 
         } // End of the WriteTo method
@@ -196,15 +193,14 @@ namespace Annytab.AzureLock
         /// <summary>
         /// Read content from the blob
         /// </summary>
-        /// <param name="stream">A reference to a stream</param>
         public async Task ReadFrom(Stream stream)
         {
             // Set a blob reference if it does not exist
             await SetBlobReference();
 
-            // Download the blob to a stream
+            // Download the blob to a stream { RetryPolicy = new LinearRetry(TimeSpan.FromSeconds(10), 3) }
             await this.blob.DownloadToStreamAsync(stream, new AccessCondition { LeaseId = this.leaseId },
-                new BlobRequestOptions { RetryPolicy = new LinearRetry(TimeSpan.FromSeconds(10), 3) }, null);
+                new BlobRequestOptions(), null);
 
         } // End of the ReadFrom method
 
@@ -216,9 +212,9 @@ namespace Annytab.AzureLock
             // Set a blob reference if it does not exist
             await SetBlobReference();
 
-            // Write to the blob
+            // Write to the blob { RetryPolicy = new LinearRetry(TimeSpan.FromSeconds(10), 3) }
             await this.blob.UploadFromStreamAsync(stream, new AccessCondition { LeaseId = this.leaseId },
-                new BlobRequestOptions { RetryPolicy = new LinearRetry(TimeSpan.FromSeconds(10), 3) }, null);
+                new BlobRequestOptions(), null);
 
         } // End of the WriteTo method
 
@@ -284,7 +280,6 @@ namespace Annytab.AzureLock
         /// <summary>
         /// Protected implementation of Dispose pattern
         /// </summary>
-        /// <param name="disposing">True or false</param>
         protected virtual void Dispose(bool disposing)
         {
             if (this.disposed)

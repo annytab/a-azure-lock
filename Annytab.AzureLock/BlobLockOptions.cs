@@ -7,19 +7,8 @@
     {
         #region Variables
 
-        /// <summary>
-        /// A connection string to an azure storage account
-        /// </summary>
         public string connection_string { get; set; }
-
-        /// <summary>
-        /// A name for the container
-        /// </summary>
         public string container_name { get; set; }
-
-        /// <summary>
-        /// A name for the blob
-        /// </summary>
         public string blob_name { get; set; }
 
         #endregion

@@ -96,7 +96,6 @@ namespace TestProgram
         /// <summary>
         /// Create or wait for a lock
         /// </summary>
-        /// <param name="threadId">A thread id</param>
         private async Task CreateOrWaitForLock(Int32 threadId)
         {
             // Add options
@@ -111,13 +110,13 @@ namespace TestProgram
                 // Do work inside a blob lock
                 if (await blobLock.CreateOrWait() == true)
                 {
-                    Logger.LogMessage("Thread " + threadId.ToString() + ": Has lock for 1 minute. Date: " + DateTime.UtcNow.ToString("s"));
+                    Logger.LogMessage("Thread " + threadId.ToString() + ": Has lock for 2 seconds. Date: " + DateTime.UtcNow.ToString("s"));
 
                     // Read from the blob
                     Logger.LogMessage("Text: " + await blobLock.ReadFrom());
 
-                    // Sleep for 1 minute
-                    await Task.Delay(TimeSpan.FromSeconds(60));
+                    // Sleep for 3 seconds
+                    await Task.Delay(TimeSpan.FromSeconds(2));
                 }
             }
 
@@ -126,7 +125,6 @@ namespace TestProgram
         /// <summary>
         /// Create a lock or skip if the lock is taken
         /// </summary>
-        /// <param name="threadId">A thread id</param>
         private async Task CreateOrSkipLock(Int32 threadId)
         {
             // Add options
@@ -141,10 +139,10 @@ namespace TestProgram
                 // Do work inside a blob lock
                 if (await blobLock.CreateOrSkip() == true)
                 {
-                    Logger.LogMessage("Thread " + threadId.ToString() + ": Has lock for 1 minute.");
+                    Logger.LogMessage("Thread " + threadId.ToString() + ": Has lock for 30 seconds.");
 
-                    // Sleep for 1 minute
-                    await Task.Delay(TimeSpan.FromSeconds(60));
+                    // Sleep for 30 seconds
+                    await Task.Delay(TimeSpan.FromSeconds(30));
 
                     // Write to the blob
                     await blobLock.WriteTo(threadId.ToString());
@@ -160,7 +158,6 @@ namespace TestProgram
         /// <summary>
         /// Upload an image to the blob
         /// </summary>
-        /// <param name="threadId">A thread id</param>
         private async Task UploadImage(Int32 threadId)
         {
             // Add options
@@ -177,7 +174,7 @@ namespace TestProgram
                 // Do work inside a blob lock
                 if (await blobLock.CreateOrSkip() == true)
                 {
-                    Logger.LogMessage("Thread " + threadId.ToString() + ": Has lock for 1 minute.");
+                    Logger.LogMessage("Thread " + threadId.ToString() + ": Has lock during image upload.");
 
                     // Upload the image
                     using (FileStream fileStream = File.OpenRead("D:\\Bilder\\1960.jpg"))
@@ -198,7 +195,6 @@ namespace TestProgram
         /// <summary>
         /// Download an image from the blob
         /// </summary>
-        /// <param name="threadId">A thread id</param>
         private async Task DownloadImage(Int32 threadId)
         {
             // Add options
@@ -215,7 +211,7 @@ namespace TestProgram
                 // Do work inside a blob lock
                 if (await blobLock.CreateOrSkip() == true)
                 {
-                    Logger.LogMessage("Thread " + threadId.ToString() + ": Has lock for 1 minute.");
+                    Logger.LogMessage("Thread " + threadId.ToString() + ": Has lock during download.");
 
                     // Download an image to a file
                     using (FileStream fileStream = File.OpenWrite("D:\\Bilder\\Azure-blob-image.jpg"))
