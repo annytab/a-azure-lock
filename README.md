@@ -3,12 +3,12 @@ A blob lock written in ASP.NET and C# to use in multi-instance applications on A
 
 You can upload a stream of content to the locked cloud block blob and download the contents from the locked cloud block blob as a stream. You can write text to and read text from the locked cloud block blob.
 
-If you want to test the lock with the test program, add a appsettings.Development.json (copy of appsettings.json) or modify the appsettings.json file.
+If you want to test the lock with the test program, add a `appsettings.Development.json` (copy of `appsettings.json`) or modify the `appsettings.json` file.
 
 This blob lock is available as a NuGet package: <a href="https://www.nuget.org/packages/Annytab.AzureLock/">a-azure-lock (NuGet Gallery)</a>
 
 Example, Create a lock or wait for the lock to be released:
-<pre>
+```cs
 // Add options
 BlobLockOptions options = new BlobLockOptions();
 options.connection_string = this.configuration.GetSection("AppSettings")["AzureStorageAccount"];
@@ -30,10 +30,10 @@ using (BlobLock blobLock = new BlobLock(options))
 		await Task.Delay(TimeSpan.FromSeconds(60));
 	}
 }
-</pre>
+```
 
 Example, Create a lock or skip if the lock is taken:
-<pre>
+```cs
 // Add options
 BlobLockOptions options = new BlobLockOptions();
 options.connection_string = this.configuration.GetSection("AppSettings")["AzureStorageAccount"];
@@ -59,10 +59,10 @@ using (BlobLock blobLock = new BlobLock(options))
 		Logger.LogMessage("Thread " + threadId.ToString() + ": Does not wait for the lock to be released.");
 	}
 }
-</pre>
+```
 
 Example, Upload a stream (image):
-<pre>
+```cs
 // Add options
 BlobLockOptions options = new BlobLockOptions()
 {
@@ -92,10 +92,10 @@ using (BlobLock blobLock = new BlobLock(options))
 		Logger.LogMessage("Thread " + threadId.ToString() + ": Does not wait for the lock to be released.");
 	}
 }
-</pre>
+```
 
 Example, Download a stream (image):
-<pre>
+```cs
 // Add options
 BlobLockOptions options = new BlobLockOptions()
 {
@@ -125,4 +125,4 @@ using (BlobLock blobLock = new BlobLock(options))
 		Logger.LogMessage("Thread " + threadId.ToString() + ": Does not wait for the lock to be released.");
 	}
 }
-</pre>
+```
