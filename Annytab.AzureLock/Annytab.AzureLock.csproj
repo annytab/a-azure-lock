@@ -2,24 +2,32 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Version>1.2.3</Version>
+    <Version>1.2.4</Version>
     <Authors>A Name Not Yet Taken AB</Authors>
     <Company>A Name Not Yet Taken AB</Company>
     <Product>a-azure-lock</Product>
     <Description>A blob lock written in ASP.NET and C# to use in multi-instance applications on Azure. A blob lock needs a connection string to the storage account, a container name and a name for the blob file.</Description>
     <Copyright>Copyright © 2016</Copyright>
     <PackageTags>ASP.NET, .NET, Core, C#,  Azure, Lock</PackageTags>
-    <PackageIconUrl>http://www.annytab.com/annytab_logo_512x512.png</PackageIconUrl>
     <PackageProjectUrl>https://github.com/annytab/a-azure-lock</PackageProjectUrl>
     <RepositoryUrl></RepositoryUrl>
     <NeutralLanguage>en</NeutralLanguage>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <PackageReleaseNotes>This version makes the process of taking an releasing locks faster. Waits for locks to be released for a maximum of 1 second and renews the lease every 1 second.</PackageReleaseNotes>
-    <PackageLicenseUrl>https://github.com/annytab/a-azure-lock/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageReleaseNotes>Changed license to MIT.</PackageReleaseNotes>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageIcon>icon.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="WindowsAzure.Storage" Version="9.3.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\icon.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+    <None Include="..\LICENSE" Pack="true" PackagePath="" />
   </ItemGroup>
 
 </Project>
