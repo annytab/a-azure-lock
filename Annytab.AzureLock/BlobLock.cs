@@ -54,7 +54,7 @@ namespace Annytab.AzureLock
             // Try to aquire a blob lock
             while (await TryAcquireLease() == false)
             {
-                // Sleep between 200 and 1000 millisecondes
+                // Sleep between 200 and 1000 milliseconds
                 await Task.Delay(this.rnd.Next(200, 1000));
             }
 
